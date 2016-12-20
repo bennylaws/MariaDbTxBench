@@ -115,13 +115,19 @@ public class WorkingClass implements Runnable {
         try {
             
             Statement stmt = null;
-            ResultSet rs = null;
             
-            conni = DriverManager.getConnection("jdbc:mysql://192.168.122.56/bank", "dbi", "dbi_pass");
+            conni = DriverManager.getConnection("jdbc:mysql://localhost/bank", "dbi", "dbi_pass");
             conni.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             conni.setAutoCommit(false);
             
             stmt = conni.createStatement();
+            
+            // clear history in case thread id is 0
+            if (this.threadId == 0) {
+                stmt.executeUpdate("DELETE FROM history");
+                conni.commit();
+                stmt.close();
+            }
             
             System.out.println("Sehr verbunden :)");    // no suitable English translation :-/
             int methodNo;
@@ -191,9 +197,6 @@ public class WorkingClass implements Runnable {
             
             conni.close();
  
-            if (rs != null)
-                rs.close();
-
         }
         catch (Exception e) {
             System.err.println("* Error *");

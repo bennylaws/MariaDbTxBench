@@ -1,6 +1,5 @@
 package mariadbtxbench;
 
-import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 /**
@@ -30,7 +29,8 @@ public class UpperClass {
         }
         
         // timing control
-        try {System.out.println("starting threads, warming up..." +
+        try {
+            System.out.println("starting threads, warming up..." +
                                 new GregorianCalendar().getTime());
             Thread.sleep(240_000);
             timeToCount = !timeToCount;     // toggle measurement (on)
