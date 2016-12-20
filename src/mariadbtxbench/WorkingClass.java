@@ -21,7 +21,7 @@ public class WorkingClass implements Runnable {
     Connection conni = null;
     
     int accId, tellerId, branchId, delta;
-    long countTx = 0;
+    int countTx = 0, countFail = 0;
     
     public WorkingClass (int id) {
         this.threadId = id;
@@ -37,7 +37,6 @@ public class WorkingClass implements Runnable {
         
         int accBal = 77777;
         
-        try {
         rs = stmt.executeQuery("SELECT balance FROM accounts WHERE accid = " + accId + ";");
         
         rs.next();
@@ -46,23 +45,8 @@ public class WorkingClass implements Runnable {
         accBal = rs.getInt(1);
         conni.commit();
         
-        }
-        
-        catch (Exception e1) {
-            System.out.println("fehler1");
-            try {
-                conni.rollback();
-            }
-            catch (Exception e2) {
-                System.out.println("fehler2");
-                conni.rollback();
-            }
-        
-        }
-        finally {
-            stmt.close();
-            return accBal;
-        }
+        stmt.close();
+        return accBal;
     }
 
     private int deposit() throws Exception {
@@ -78,33 +62,15 @@ public class WorkingClass implements Runnable {
         
         int newBal = 88888;
         
-        try {
-        
-        // save old balances...
-        int branchBalOld, tellBalOld, accBalOld;
-        
-        rs = stmt.executeQuery("SELECT balance FROM branches WHERE branchid = " + branchId + ";");
-        rs.next();
-        branchBalOld = rs.getInt(1);
-        
-        rs = stmt.executeQuery("SELECT balance FROM tellers WHERE tellerid = " + tellerId + ";");
-        rs.next();
-        tellBalOld = rs.getInt(1);
-        
-        rs = stmt.executeQuery("SELECT balance FROM accounts WHERE accid = " + accId + ";");
-        rs.next();
-        accBalOld = rs.getInt(1);
-        
         // Updates 1-4
-        stmt.executeUpdate("UPDATE branches SET balance = " + (branchBalOld + delta) +
+        stmt.executeUpdate("UPDATE branches SET balance = " + delta +
                             " WHERE branchid = " + branchId + ";");
         
-        stmt.executeUpdate("UPDATE tellers SET balance = " + (tellBalOld + delta) +
+        stmt.executeUpdate("UPDATE tellers SET balance = " + delta +
                             " WHERE tellerid = " + tellerId + ";");
         
-        stmt.executeUpdate("UPDATE accounts SET balance = " + (accBalOld + delta) +
+        stmt.executeUpdate("UPDATE accounts SET balance = " + delta +
                              " WHERE accid = " + accId + ";");
-                                    
         
         stmt.executeUpdate("INSERT INTO history VALUES (" + accId + "," + tellerId +
                             "," + delta + "," + branchId +
@@ -115,25 +81,12 @@ public class WorkingClass implements Runnable {
         rs.next();
  
         if (rs != null)
-            newBal = rs.getInt(1);
-        
+            newBal = rs.getInt(1) + delta;      // new balance not yet committed
+                                                // -> read old one and add delta
         conni.commit();
         
-        }
-        
-        catch (Exception e1) {
-            System.out.println(e1.getMessage());
-            try {
-                conni.rollback();
-            }
-            catch (Exception e2) {
-                conni.rollback();
-            }
-        }
-        finally {
-            stmt.close();
-            return newBal;
-        } 
+        stmt.close();
+        return newBal;
     }
 
     private int analyze() throws Exception {
@@ -146,31 +99,15 @@ public class WorkingClass implements Runnable {
         
         int sameAmount = 99999;
         
-        try {  
-        rs = null;    
-        rs = stmt.executeQuery("SELECT COUNT(*) WHERE delta = " + delta + ";");
+        rs = stmt.executeQuery("SELECT COUNT(*) FROM history WHERE delta = " + delta + ";");
         rs.next();
         
         sameAmount = rs.getInt(1);
         
         conni.commit();
         
-        }
-        catch (Exception e1) {
-//            System.out.println("fehler5");
-            try {
-                conni.rollback();
-            }
-            catch (Exception e2) {
-//                System.out.println("fehler6");
-                conni.rollback();
-            }
-        }
-        
-       finally {
-            stmt.close();
-            return sameAmount;
-        }
+        stmt.close();
+        return sameAmount;
     }
 
     @Override
@@ -180,7 +117,7 @@ public class WorkingClass implements Runnable {
             Statement stmt = null;
             ResultSet rs = null;
             
-            conni = DriverManager.getConnection("jdbc:mysql://localhost/bank", "dbi", "dbi_pass");
+            conni = DriverManager.getConnection("jdbc:mysql://192.168.122.56/bank", "dbi", "dbi_pass");
             conni.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             conni.setAutoCommit(false);
             
@@ -202,38 +139,61 @@ public class WorkingClass implements Runnable {
                 
                 else if (methodNo > 85 && methodNo <= 100)
                     methodNo = 3;
-
-                switch (methodNo) {
-
-                    case 1:
-                        getBalance();
-                        break;
-
-                    case 2:
-                        deposit();
-                        break;
-
-                    case 3:
-                        analyze();
-                        break;
-
-                    default:
-                        System.out.println("*** Error ***");
-                        break;
-                }
-            
-                Thread.sleep(50);                       // "think time"
                 
-                if (UpperClass.timeToCount)
-                    countTx++;                          // count TXs during correct time frame
+                try {
+                    
+                    switch (methodNo) {
+
+                        case 1:
+                            getBalance();
+                            break;
+
+                        case 2:
+                            deposit();
+                            break;
+
+                        case 3:
+                            analyze();
+                            break;
+
+                        default:
+                            System.out.println("*** Error ***");
+                            break;
+                    }
+
+                    Thread.sleep(50);                   // "think time"
+
+                    if (UpperClass.timeToCount)
+                        countTx++;                      // count TXs during correct time frame
+                    
+                }
+                catch (Exception e1) {
+
+                    if (UpperClass.timeToCount)
+                        countFail++;                    // count failures during correct time frame
+
+                    System.out.println("tx failed");
+                    
+                    try {
+                        conni.rollback();
+                    }
+                    catch (Exception e2) {
+                        
+                        System.out.println("rollback failed");
+                        conni.rollback();
+                        
+                    }
+                }
             }
-            UpperClass.countArr[threadId] = countTx;    // write count result to array
             
-        conni.close();
-        
-        if (rs != null)
-            rs.close();
-        
+            UpperClass.countArr[threadId] = countTx;    // write count result to array
+            UpperClass.failArr[threadId] = countFail;   // count failures
+            
+            conni.close();
+ 
+            if (rs != null)
+                rs.close();
+
         }
         catch (Exception e) {
             System.err.println("* Error *");
