@@ -32,7 +32,7 @@ public class UpperClass {
         try {
             System.out.println("starting threads, warming up..." +
                                 new GregorianCalendar().getTime());
-            Thread.sleep(240_000);
+            Thread.sleep(20_000);
             timeToCount = !timeToCount;     // toggle measurement (on)
             
             System.out.println("beginning measurement: " +
@@ -44,10 +44,10 @@ public class UpperClass {
                                 new GregorianCalendar().getTime());
             System.out.println("cooling down...");
 
-            Thread.sleep(60_000);
+            Thread.sleep(6_000);
             measure = false;                // "close" threads -> end while loop
             
-            Thread.sleep(10_000);           // wait for threads to write into arrays
+            Thread.sleep(5_000);           // wait for threads to write into arrays
             System.out.println("finished." + new GregorianCalendar().getTime());
 
         }
@@ -67,7 +67,7 @@ public class UpperClass {
         for (int i = 0; i < 5; i++)
             failCount += failArr[i];
         
-        System.out.println("\nResult (overall during 5 mins): " + txCount +
+        System.out.println("\nResult (overall during 0.5 mins): " + txCount +
                             " transactions INCLUDING fails");
         
         System.out.println("Result (Tx/s): " + txCount / 300);

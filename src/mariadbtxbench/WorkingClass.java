@@ -63,13 +63,13 @@ public class WorkingClass implements Runnable {
         int newBal = 88888;
         
         // Updates 1-4
-        stmt.executeUpdate("UPDATE branches SET balance = " + delta +
+        stmt.executeUpdate("UPDATE branches SET balance = balance + " + delta +
                             " WHERE branchid = " + branchId + ";");
         
-        stmt.executeUpdate("UPDATE tellers SET balance = " + delta +
+        stmt.executeUpdate("UPDATE tellers SET balance = balance + " + delta +
                             " WHERE tellerid = " + tellerId + ";");
         
-        stmt.executeUpdate("UPDATE accounts SET balance = " + delta +
+        stmt.executeUpdate("UPDATE accounts SET balance = balance + " + delta +
                              " WHERE accid = " + accId + ";");
         
         stmt.executeUpdate("INSERT INTO history VALUES (" + accId + "," + tellerId +
