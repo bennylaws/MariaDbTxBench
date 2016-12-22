@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mariadbtxbench;
 
 import java.sql.Connection;
@@ -13,7 +8,7 @@ import java.sql.ResultSet;
 
 /**
  *
- * @author ben
+ * @author Ann-Kathrin Hillig, Benjamin Laws, Tristan Simon
  */
 public class WorkingClass implements Runnable {
 
@@ -27,21 +22,21 @@ public class WorkingClass implements Runnable {
         this.threadId = id;
     }
     
+    // getBalance-method
     private int getBalance() throws Exception {
         
         Statement stmt = null;
         ResultSet rs = null;
         stmt = conni.createStatement();
         
-        accId = (int) (1 + Math.random() * 10_000_000);
+        accId = (int) (1 + Math.random() * 10_000_000);     // 1 - 1.000
         
         int accBal = 77777;
         
-        rs = stmt.executeQuery("SELECT balance FROM accounts WHERE accid = " + accId + ";");
+        rs = stmt.executeQuery(
+                "SELECT balance FROM accounts WHERE accid = " + accId + ";");
         
         rs.next();
-//        System.out.println(rs.getString(1));
-
         accBal = rs.getInt(1);
         conni.commit();
         
@@ -55,10 +50,10 @@ public class WorkingClass implements Runnable {
         ResultSet rs = null;
         stmt = conni.createStatement();
         
-        accId = (int) (1 + Math.random() * 10_000_000);
-        tellerId = (int) (1 + Math.random() * 1_000);
-        branchId = (int) (1 + Math.random() * 100);
-        delta = (int) (-500 + Math.random() * 1_000);    // +/- 500 EUR
+        accId = (int) (1 + Math.random() * 10_000_000); // 1 - 10.000.000
+        tellerId = (int) (1 + Math.random() * 1_000);   // 1 - 1.000
+        branchId = (int) (1 + Math.random() * 100);     // 1 - 100
+        delta = (int) (1 + Math.random() * 10_000);     // 1 - 1.000 EUR
         
         int newBal = 88888;
         
@@ -72,12 +67,15 @@ public class WorkingClass implements Runnable {
         stmt.executeUpdate("UPDATE accounts SET balance = balance + " + delta +
                              " WHERE accid = " + accId + ";");
         
-        stmt.executeUpdate("INSERT INTO history VALUES (" + accId + "," + tellerId +
-                            "," + delta + "," + branchId +
+        stmt.executeUpdate("INSERT INTO history VALUES (" + accId + "," +
+                            tellerId + "," + delta + "," + branchId +
                             ", (SELECT balance FROM accounts WHERE accid = " +
-                            accId + ") + " + delta + ",'100.000LeuchtendeSterneGesehen');");
+                            accId + ") + " + delta +
+                            ",'100.000LeuchtendeSterneGesehen');");
   
-        rs = stmt.executeQuery("SELECT balance FROM accounts WHERE accid = " + accId + ";");
+        rs = stmt.executeQuery("SELECT balance FROM accounts WHERE accid = " +
+                            accId + ";");
+
         rs.next();
  
         if (rs != null)
@@ -95,11 +93,12 @@ public class WorkingClass implements Runnable {
         ResultSet rs = null;
         stmt = conni.createStatement();
         
-        delta = (int) (-1000 + Math.random() * 1000);
+        delta = (int) (1 + Math.random() * 1000);   // 1 - 1000
         
         int sameAmount = 99999;
         
-        rs = stmt.executeQuery("SELECT COUNT(*) FROM history WHERE delta = " + delta + ";");
+        rs = stmt.executeQuery(
+                "SELECT COUNT(*) FROM history WHERE delta = " + delta + ";");
         rs.next();
         
         sameAmount = rs.getInt(1);
@@ -116,7 +115,13 @@ public class WorkingClass implements Runnable {
             
             Statement stmt = null;
             
-            conni = DriverManager.getConnection("jdbc:mysql://localhost/bank", "dbi", "dbi_pass");
+            conni = DriverManager.getConnection(
+                    "jdbc:mysql://192.168.122.46/bank", "dbi", "dbi_pass");
+            
+            // no suitable English translation :-/            
+            System.out.println("Sehr verbunden :)");
+            
+            // isolation level
             conni.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             conni.setAutoCommit(false);
             
@@ -124,17 +129,19 @@ public class WorkingClass implements Runnable {
             
             // clear history in case thread id is 0
             if (this.threadId == 0) {
+                
+                // only one thread will clear the history
                 stmt.executeUpdate("DELETE FROM history");
                 conni.commit();
                 stmt.close();
             }
-            
-            System.out.println("Sehr verbunden :)");    // no suitable English translation :-/
+
             int methodNo;
 
             while (UpperClass.measure) {
 
-                methodNo = (int) (1 + Math.random() * 100);     // for randomized method call
+                // "roll" for randomized method call
+                methodNo = (int) (1 + Math.random() * 100);
                 
                 // 35 / 50 / 15 %
                 if (methodNo > 0 && methodNo <= 35)
@@ -148,7 +155,7 @@ public class WorkingClass implements Runnable {
                 
                 try {
                     
-                    switch (methodNo) {
+                    switch (methodNo) {     // method switch/case
 
                         case 1:
                             getBalance();
@@ -167,37 +174,42 @@ public class WorkingClass implements Runnable {
                             break;
                     }
 
-                    Thread.sleep(50);                   // "think time"
+                    Thread.sleep(50);   // "think time"
 
                     if (UpperClass.timeToCount)
-                        countTx++;                      // count TXs during correct time frame
+                        countTx++;      // count TXs during correct time frame
                     
                 }
                 catch (Exception e1) {
 
                     if (UpperClass.timeToCount)
-                        countFail++;                    // count failures during correct time frame
+                        countFail++;    // count failures during correct time frame
 
                     System.out.println("tx failed");
                     
                     try {
-                        conni.rollback();
+                        conni.rollback();   // try rollback if failed
                     }
                     catch (Exception e2) {
                         
                         System.out.println("rollback failed");
-                        conni.rollback();
-                        
+                        conni.rollback();   // try rollback-rollback if failed
+
                     }
                 }
             }
             
-            UpperClass.countArr[threadId] = countTx;    // write count result to array
-            UpperClass.failArr[threadId] = countFail;   // count failures
+            // write tx count result to array
+            UpperClass.countArr[threadId] = countTx;
             
+            // write failure count result to array
+            UpperClass.failArr[threadId] = countFail;
+            
+            // close connection
             conni.close();
  
         }
+        // catch failures from run()
         catch (Exception e) {
             System.err.println("* Error *");
             System.err.println(e.getMessage());

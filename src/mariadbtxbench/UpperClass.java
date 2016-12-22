@@ -9,7 +9,7 @@ import java.util.GregorianCalendar;
 public class UpperClass {
 
     static boolean measure = true;          // controls while-loop in threads
-    static boolean timeToCount = false;     // de-/activates tx-counting for 5min measurement
+    static boolean timeToCount = false;     // de-/activates tx-counting for 5 min measurement
     
     static int[] countArr = new int[5];     // count result array for 5 threads
     static int[] failArr = new int[5];      // fail count Array for 5 threads
@@ -23,38 +23,40 @@ public class UpperClass {
         Thread arr[] = new Thread[5];
 
         for (int i = 0; i < 5; i++) {
-            arr[i] = new Thread(new WorkingClass(i));   // constructer call including thread-id param
+            
+            // constructor call including thread-id parameter
+            arr[i] = new Thread(new WorkingClass(i));
+            
+            // start threads
             arr[i].start();
             System.out.println("Thread " + i + " started...");
         }
         
-        // timing control
+        // timing control with timestamp outputs
         try {
             System.out.println("starting threads, warming up..." +
                                 new GregorianCalendar().getTime());
-            Thread.sleep(20_000);
+            Thread.sleep(240_000);          // 4 min wait
             timeToCount = !timeToCount;     // toggle measurement (on)
             
             System.out.println("beginning measurement: " +
                                 new GregorianCalendar().getTime());
-            Thread.sleep(300_000);
+            Thread.sleep(300_000);          // 5 min wait
 
             timeToCount = !timeToCount;     // toggle measurement (off)
             System.out.println("stopping measurement: " +
                                 new GregorianCalendar().getTime());
             System.out.println("cooling down...");
 
-            Thread.sleep(6_000);
-            measure = false;                // "close" threads -> end while loop
+            Thread.sleep(60_000);   // 1 min wait
+            measure = false;        // "close" threads -> end while loop
             
-            Thread.sleep(5_000);           // wait for threads to write into arrays
+            Thread.sleep(5_000);    // wait 5 seconds for threads to write into arrays
             System.out.println("finished." + new GregorianCalendar().getTime());
 
         }
-        catch (Exception e) {
-            
-            System.out.println("Timer-Errör");
-            
+        catch (Exception e) {            
+            System.out.println("timer error");
         }
         
         int txCount = 0, failCount = 0;
@@ -67,11 +69,12 @@ public class UpperClass {
         for (int i = 0; i < 5; i++)
             failCount += failArr[i];
         
-        System.out.println("\nResult (overall during 0.5 mins): " + txCount +
+        System.out.println("\nResult (overall during 5 mins): " + txCount +
                             " transactions INCLUDING fails");
         
         System.out.println("Result (Tx/s): " + txCount / 300);
-        System.out.println("Failed transactions (overall during 5 mins): " + failCount + "\n");
+        System.out.println("Failed transactions (overall during 5 mins): "
+                            + failCount + "\n");
 
     }
 
