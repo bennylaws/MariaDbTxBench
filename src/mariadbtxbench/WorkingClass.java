@@ -72,15 +72,15 @@ public class WorkingClass implements Runnable {
                             ", (SELECT balance FROM accounts WHERE accid = " +
                             accId + ") + " + delta +
                             ",'100.000LeuchtendeSterneGesehen');");
-  
+        
         rs = stmt.executeQuery("SELECT balance FROM accounts WHERE accid = " +
                             accId + ";");
 
         rs.next();
  
         if (rs != null)
-            newBal = rs.getInt(1) + delta;      // new balance not yet committed
-                                                // -> read old one and add delta
+            newBal = rs.getInt(1);      
+        
         conni.commit();
         
         stmt.close();
